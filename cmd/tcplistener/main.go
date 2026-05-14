@@ -3,12 +3,11 @@ package main
 import (
 	"fmt"
 	"io"
-	"log"
-	"os"
+	"net"
 	"strings"
 )
 
-func getLinesChannel(f io.ReadCloser) <-chan string {
+func getLinesChannel(conn net.Conn) <-chan string {
 	var currentLine string
 	ch := make(chan string)
 
@@ -16,8 +15,11 @@ func getLinesChannel(f io.ReadCloser) <-chan string {
 		defer close(ch)
 		for {
 			data := make([]byte, 8)
-			n, err := f.Read(data)
+			n, err := conn.Read(data)
 			if err != nil {
+				if err != io.EOF {
+					fmt.Println("error: ", err)
+				}
 				if currentLine != "" {
 					ch <- currentLine
 				}
@@ -40,14 +42,23 @@ func getLinesChannel(f io.ReadCloser) <-chan string {
 }
 
 func main() {
-	f, err := os.Open("messages.txt")
+	listner, err := net.Listen("tcp", ":42069")
 	if err != nil {
-		log.Fatal("error")
+		panic(err)
 	}
-	defer f.Close()
+	defer listner.Close()
 
-	ch := getLinesChannel(f)
-	for line := range ch {
-		fmt.Printf("read: %s\n", line)
+	for {
+		conn, err := listner.Accept()
+		if err != nil {
+			panic(err)
+		}
+		ch := getLinesChannel(conn)
+
+		for line := range ch {
+			fmt.Printf("%s\r\n", line)
+		}
+
+		conn.Close()
 	}
 }
