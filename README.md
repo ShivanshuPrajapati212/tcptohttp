@@ -1,0 +1,1 @@
+# Hey, this is discontinued project, because bootdev asking for money after I complete 4 chapters, what is this non sense, 0 ux
